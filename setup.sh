@@ -52,7 +52,15 @@ fi
 
 echo "Installing dependencies ..."
 pip install --upgrade pip --quiet
-pip install -e . --quiet
+if [ "${INSTALL_DEV_TOOLS:-1}" = "1" ]; then
+    pip install -e ".[dev]" --quiet
+else
+    pip install -e . --quiet
+fi
+
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git config core.hooksPath .githooks
+fi
 
 echo ""
 echo "=== Setup Complete ==="
@@ -60,5 +68,8 @@ echo ""
 echo "To run the server:"
 echo "  .venv/bin/python main.py              # Default safe mode (readonly)"
 echo "  .venv/bin/python main.py --write      # Allow mutating operations"
+echo ""
+echo "Pre-push security hook enabled via .githooks/pre-push"
+echo "Set INSTALL_DEV_TOOLS=0 to skip semgrep/bandit/pip-audit installation"
 echo ""
 echo "See README.md for Claude Desktop configuration."
