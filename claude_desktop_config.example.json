@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "aws-mcp": {
+      "command": "/home/marcelo/mcp-servers/aws-mcp/.venv/bin/python",
+      "args": [
+        "/home/marcelo/mcp-servers/aws-mcp/main.py",
+        "--readonly"
+      ],
+      "env": {
+        "AWS_CONFIG_FILE": "/home/marcelo/.aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "/home/marcelo/.aws/credentials"
+      }
+    },
+    "aws-mcp-write": {
+      "command": "/home/marcelo/mcp-servers/aws-mcp/.venv/bin/python",
+      "args": [
+        "/home/marcelo/mcp-servers/aws-mcp/main.py"
+      ],
+      "env": {
+        "AWS_CONFIG_FILE": "/home/marcelo/.aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "/home/marcelo/.aws/credentials"
+      }
+    }
+  }
+}
