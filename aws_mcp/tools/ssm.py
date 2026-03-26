@@ -4,6 +4,7 @@ import json
 
 from ..aws_client import get_client
 from ..config import get_config
+from ..sensitive_guard import SENSITIVE_ACCESS_PROPERTIES, require_sensitive_access
 from . import COMMON_PROPERTIES, tool
 
 
@@ -56,13 +57,14 @@ async def describe_parameters(arguments: dict) -> str:
         "type": "object",
         "properties": {
             **COMMON_PROPERTIES,
+            **SENSITIVE_ACCESS_PROPERTIES,
             "name": {
                 "type": "string",
                 "description": "Parameter name or ARN",
             },
             "with_decryption": {
                 "type": "boolean",
-                "description": "Decrypt SecureString values (default: true)",
+                "description": "Decrypt SecureString values (default: false)",
             },
         },
         "required": ["name"],
@@ -70,11 +72,17 @@ async def describe_parameters(arguments: dict) -> str:
     is_read_only=True,
 )
 async def get_parameter(arguments: dict) -> str:
+    with_decryption = arguments.get("with_decryption", False)
+    if with_decryption:
+        sensitive_error = require_sensitive_access(arguments, "aws_ssm_get_parameter")
+        if sensitive_error:
+            return json.dumps({"error": sensitive_error, "sensitive": True})
+
     def _execute():
         client = get_client("ssm", arguments.get("profile"), arguments.get("region"))
         response = client.get_parameter(
             Name=arguments["name"],
-            WithDecryption=arguments.get("with_decryption", True),
+            WithDecryption=with_decryption,
         )
         param = response.get("Parameter", {})
         return param
@@ -90,6 +98,7 @@ async def get_parameter(arguments: dict) -> str:
         "type": "object",
         "properties": {
             **COMMON_PROPERTIES,
+            **SENSITIVE_ACCESS_PROPERTIES,
             "path": {
                 "type": "string",
                 "description": "Parameter path prefix (e.g., '/app/prod/')",
@@ -100,7 +109,7 @@ async def get_parameter(arguments: dict) -> str:
             },
             "with_decryption": {
                 "type": "boolean",
-                "description": "Decrypt SecureString values (default: true)",
+                "description": "Decrypt SecureString values (default: false)",
             },
             "max_results": {
                 "type": "integer",
@@ -112,12 +121,20 @@ async def get_parameter(arguments: dict) -> str:
     is_read_only=True,
 )
 async def get_parameters_by_path(arguments: dict) -> str:
+    with_decryption = arguments.get("with_decryption", False)
+    if with_decryption:
+        sensitive_error = require_sensitive_access(
+            arguments, "aws_ssm_get_parameters_by_path"
+        )
+        if sensitive_error:
+            return json.dumps({"error": sensitive_error, "sensitive": True})
+
     def _execute():
         client = get_client("ssm", arguments.get("profile"), arguments.get("region"))
         kwargs: dict = {
             "Path": arguments["path"],
             "Recursive": arguments.get("recursive", True),
-            "WithDecryption": arguments.get("with_decryption", True),
+            "WithDecryption": with_decryption,
         }
         if "max_results" in arguments:
             kwargs["MaxResults"] = arguments["max_results"]

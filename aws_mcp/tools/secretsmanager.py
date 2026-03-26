@@ -3,6 +3,7 @@ import asyncio
 import json
 
 from ..aws_client import get_client
+from ..sensitive_guard import SENSITIVE_ACCESS_PROPERTIES, require_sensitive_access
 from . import COMMON_PROPERTIES, tool
 
 
@@ -70,6 +71,7 @@ async def list_secrets(arguments: dict) -> str:
         "type": "object",
         "properties": {
             **COMMON_PROPERTIES,
+            **SENSITIVE_ACCESS_PROPERTIES,
             "secret_id": {
                 "type": "string",
                 "description": "Secret name or ARN",
@@ -128,6 +130,12 @@ async def get_secret_value(arguments: dict) -> str:
             "error": "BLOCKED by readonly mode: GetSecretValue is not allowed. Remove --readonly to enable.",
             "readonly": True,
         })
+
+    sensitive_error = require_sensitive_access(
+        arguments, "aws_secretsmanager_get_secret_value"
+    )
+    if sensitive_error:
+        return json.dumps({"error": sensitive_error, "sensitive": True})
 
     def _execute():
         client = get_client(

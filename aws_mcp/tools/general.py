@@ -10,6 +10,11 @@ import logging
 from ..aws_client import get_client
 from ..config import get_config
 from ..readonly_guard import check_readonly
+from ..sensitive_guard import (
+    SENSITIVE_ACCESS_PROPERTIES,
+    is_sensitive_execute_call,
+    require_sensitive_access,
+)
 from . import COMMON_PROPERTIES, tool
 
 logger = logging.getLogger("aws_mcp")
@@ -27,6 +32,7 @@ logger = logging.getLogger("aws_mcp")
         "type": "object",
         "properties": {
             **COMMON_PROPERTIES,
+            **SENSITIVE_ACCESS_PROPERTIES,
             "service": {
                 "type": "string",
                 "description": (
@@ -58,6 +64,11 @@ async def execute(arguments: dict) -> str:
     service = arguments["service"]
     method = arguments["method"]
     params = dict(arguments.get("parameters", {}))
+
+    if is_sensitive_execute_call(service, method, params):
+        sensitive_error = require_sensitive_access(arguments, "aws_execute")
+        if sensitive_error:
+            return json.dumps({"error": sensitive_error, "sensitive": True})
 
     # Readonly guard
     result = check_readonly(service, method, config.readonly)

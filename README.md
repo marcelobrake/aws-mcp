@@ -7,8 +7,10 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 - **208 AWS tools** across 57 services: EC2, S3, IAM, Lambda, CloudWatch, ECS, RDS, DynamoDB, SQS, SNS, SES, ECR, ElastiCache, API Gateway, CloudFront, Route53, Cost Explorer, Cognito, MemoryDB, DocumentDB, OpenSearch, EKS, Athena, Glue, MWAA, Firehose, Secrets Manager, SSM, Lake Formation, CloudTrail, CloudFormation, KMS, ACM, Kinesis, EMR, SageMaker, VPC, Organizations, Resource Groups, EventBridge, ELB v2, Auto Scaling, Step Functions, WAF v2, GuardDuty, Security Hub, CodePipeline, CodeBuild, CodeDeploy, Redshift, EFS, AWS Backup, and more
 - **Multi-profile support** — use any AWS profile from `~/.aws/config`
 - **Readonly by default** — starts in safe mode; use `--write` to allow mutating operations
+- **Sensitive data gate** — Secrets Manager and decrypted SSM reads require extra authentication even in write-enabled mode
 - **Structured JSONL logging** — every operation is logged to `logs/aws_mcp.jsonl`
 - **OpenTelemetry tracing (opt-in)** — distributed traces are exported only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
+- **Pre-push security scans** — semgrep, gitleaks, trivy, bandit, and pip-audit can block unsafe pushes
 - **Cross-platform** — works on Ubuntu/Linux, macOS, and Windows
 
 ## Requirements
@@ -32,7 +34,7 @@ Or manually:
 python3 -m venv .venv
 source .venv/bin/activate        # Linux/macOS
 # .venv\Scripts\activate         # Windows
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 ### 2. Test the server
@@ -96,6 +98,38 @@ After saving the configuration, restart Claude Desktop. The AWS tools will appea
 | `--write`      | Allow mutating operations                         | Off     |
 | `--log-dir`    | Directory for JSONL log files                    | `logs`  |
 | `--log-level`  | Log verbosity: DEBUG, INFO, WARNING, ERROR       | `INFO`  |
+
+## Sensitive Data Access
+
+Some operations can return secret or decrypted data directly to the MCP client. These operations now require an extra approval token even when the server is running with `--write`.
+
+Protected flows:
+
+1. `aws_secretsmanager_get_secret_value`
+2. `aws_ssm_get_parameter` with `with_decryption=true`
+3. `aws_ssm_get_parameters_by_path` with `with_decryption=true`
+4. Equivalent sensitive calls made through `aws_execute`
+
+Set an out-of-band token in the server environment:
+
+```bash
+export AWS_MCP_SENSITIVE_ACCESS_TOKEN="replace-with-a-long-random-token"
+```
+
+For protected operations, pass all three fields below:
+
+```json
+{
+  "sensitive_access_token": "replace-with-a-long-random-token",
+  "sensitive_access_reason": "incident response for production database access",
+  "sensitive_access_acknowledged": true
+}
+```
+
+Notes:
+
+1. SSM decryption now defaults to `false`.
+2. KMS metadata tools remain read-only. If a future KMS tool can return plaintext, it must use the same gate.
 
 ## Available Tools (208 total)
 
@@ -620,6 +654,25 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 .venv/bin/python main.py
 ```
 
 Without the environment variable, tracing stays disabled.
+
+## Security Hooks
+
+The repository ships with a versioned pre-push hook in `.githooks/pre-push`. Running `./setup.sh` configures `core.hooksPath` automatically.
+
+The hook runs `scripts/security_scan.sh`, which executes:
+
+1. `semgrep --config auto`
+2. `gitleaks detect`
+3. `trivy fs`
+4. `bandit -r aws_mcp main.py`
+5. `pip-audit`
+
+Required external binaries:
+
+1. `gitleaks`
+2. `trivy`
+
+Python-based scanners are installed by default with `pip install -e ".[dev]"` during `./setup.sh`. If you only want runtime dependencies, run `INSTALL_DEV_TOOLS=0 ./setup.sh`.
 
 ## Project Structure
 
