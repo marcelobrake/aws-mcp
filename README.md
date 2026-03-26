@@ -6,9 +6,9 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 
 - **208 AWS tools** across 57 services: EC2, S3, IAM, Lambda, CloudWatch, ECS, RDS, DynamoDB, SQS, SNS, SES, ECR, ElastiCache, API Gateway, CloudFront, Route53, Cost Explorer, Cognito, MemoryDB, DocumentDB, OpenSearch, EKS, Athena, Glue, MWAA, Firehose, Secrets Manager, SSM, Lake Formation, CloudTrail, CloudFormation, KMS, ACM, Kinesis, EMR, SageMaker, VPC, Organizations, Resource Groups, EventBridge, ELB v2, Auto Scaling, Step Functions, WAF v2, GuardDuty, Security Hub, CodePipeline, CodeBuild, CodeDeploy, Redshift, EFS, AWS Backup, and more
 - **Multi-profile support** — use any AWS profile from `~/.aws/config`
-- **Readonly mode** (`--readonly`) — blocks all mutating operations; uses `DryRun` where the AWS API supports it
+- **Readonly by default** — starts in safe mode; use `--write` to allow mutating operations
 - **Structured JSONL logging** — every operation is logged to `logs/aws_mcp.jsonl`
-- **OpenTelemetry tracing** — distributed traces for every tool invocation, exportable via OTLP
+- **OpenTelemetry tracing (opt-in)** — distributed traces are exported only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
 - **Cross-platform** — works on Ubuntu/Linux, macOS, and Windows
 
 ## Requirements
@@ -39,7 +39,7 @@ pip install -e .
 
 ```bash
 # Verify it starts (will wait for MCP input on stdin, Ctrl+C to stop)
-.venv/bin/python main.py --readonly
+.venv/bin/python main.py
 ```
 
 ### 3. Configure Claude Desktop
@@ -60,8 +60,7 @@ Add the server to the `mcpServers` section:
     "aws-mcp": {
       "command": "/absolute/path/to/aws-mcp/.venv/bin/python",
       "args": [
-        "/absolute/path/to/aws-mcp/main.py",
-        "--readonly"
+        "/absolute/path/to/aws-mcp/main.py"
       ]
     }
   }
@@ -78,8 +77,7 @@ Add the server to the `mcpServers` section:
     "aws-mcp": {
       "command": "C:\\path\\to\\aws-mcp\\.venv\\Scripts\\python.exe",
       "args": [
-        "C:\\path\\to\\aws-mcp\\main.py",
-        "--readonly"
+        "C:\\path\\to\\aws-mcp\\main.py"
       ]
     }
   }
@@ -94,7 +92,8 @@ After saving the configuration, restart Claude Desktop. The AWS tools will appea
 
 | Flag           | Description                                      | Default |
 |----------------|--------------------------------------------------|---------|
-| `--readonly`   | Block mutations; use DryRun where supported       | Off     |
+| `--readonly`   | Force readonly mode explicitly                    | On      |
+| `--write`      | Allow mutating operations                         | Off     |
 | `--log-dir`    | Directory for JSONL log files                    | `logs`  |
 | `--log-level`  | Log verbosity: DEBUG, INFO, WARNING, ERROR       | `INFO`  |
 
@@ -585,7 +584,7 @@ After saving the configuration, restart Claude Desktop. The AWS tools will appea
 
 ## Readonly Mode
 
-When `--readonly` is passed, the server enforces these rules:
+The server starts in readonly mode by default. When readonly mode is active, it enforces these rules:
 
 1. **Read-only operations** (`list*`, `describe*`, `get*`, etc.) — always allowed
 2. **Mutating operations with DryRun support** (e.g., EC2 start/stop, Lambda invoke) — executed with `DryRun=True` to validate permissions without making changes
@@ -620,7 +619,7 @@ To export traces to an observability backend (Jaeger, Grafana Tempo, etc.):
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 .venv/bin/python main.py
 ```
 
-Without the environment variable, traces are emitted to stderr in a human-readable format.
+Without the environment variable, tracing stays disabled.
 
 ## Project Structure
 

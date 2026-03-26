@@ -3,8 +3,7 @@
     "aws-mcp": {
       "command": "/home/marcelo/mcp-servers/aws-mcp/.venv/bin/python",
       "args": [
-        "/home/marcelo/mcp-servers/aws-mcp/main.py",
-        "--readonly"
+        "/home/marcelo/mcp-servers/aws-mcp/main.py"
       ],
       "env": {
         "AWS_CONFIG_FILE": "/home/marcelo/.aws/config",
@@ -14,7 +13,8 @@
     "aws-mcp-write": {
       "command": "/home/marcelo/mcp-servers/aws-mcp/.venv/bin/python",
       "args": [
-        "/home/marcelo/mcp-servers/aws-mcp/main.py"
+        "/home/marcelo/mcp-servers/aws-mcp/main.py",
+        "--write"
       ],
       "env": {
         "AWS_CONFIG_FILE": "/home/marcelo/.aws/config",
