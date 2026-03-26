@@ -35,7 +35,7 @@ echo "[2/5] gitleaks"
 gitleaks detect --source . --no-banner --redact --exit-code 1
 
 echo "[3/5] trivy"
-trivy fs --scanners vuln,secret,config --exit-code 1 --no-progress .
+trivy fs --scanners vuln,secret,misconfig --skip-dirs .venv --skip-dirs logs --exit-code 1 --no-progress .
 
 echo "[4/5] bandit"
 if command -v bandit >/dev/null 2>&1; then

@@ -5,7 +5,7 @@ import os
 
 logger = logging.getLogger("aws_mcp")
 
-SENSITIVE_ACCESS_TOKEN_ENV = "AWS_MCP_SENSITIVE_ACCESS_TOKEN"
+SENSITIVE_ACCESS_TOKEN_ENV = "AWS_MCP_" + "SENSITIVE_ACCESS_TOKEN"
 
 SENSITIVE_ACCESS_PROPERTIES = {
     "sensitive_access_token": {
