@@ -2,8 +2,9 @@
 """AWS MCP Server entry point.
 
 Usage:
-    python main.py                  # Normal mode (read + write)
-    python main.py --readonly       # Readonly mode (blocks mutations, uses DryRun)
+    python main.py                  # Default safe mode (readonly)
+    python main.py --readonly       # Explicit readonly mode
+    python main.py --write          # Allow mutating operations
     python main.py --log-level DEBUG
 """
 from aws_mcp import run

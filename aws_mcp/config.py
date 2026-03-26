@@ -10,7 +10,7 @@ logger = logging.getLogger("aws_mcp")
 class AppConfig:
     """Immutable application configuration."""
 
-    readonly: bool = False
+    readonly: bool = True
     log_dir: str = "logs"
     log_level: str = "INFO"
 
@@ -20,11 +20,19 @@ class AppConfig:
         parser = argparse.ArgumentParser(
             description="AWS MCP Server for Claude Desktop"
         )
-        parser.add_argument(
+        mode_group = parser.add_mutually_exclusive_group()
+        mode_group.add_argument(
             "--readonly",
+            dest="readonly",
             action="store_true",
-            default=False,
-            help="Enable readonly mode: blocks mutating operations, uses DryRun where supported",
+            default=True,
+            help="Run in readonly mode (default): blocks mutating operations and uses DryRun where supported",
+        )
+        mode_group.add_argument(
+            "--write",
+            dest="readonly",
+            action="store_false",
+            help="Allow mutating operations. Use only with trusted AWS profiles and environments.",
         )
         parser.add_argument(
             "--log-dir",
