@@ -45,8 +45,10 @@ else
 fi
 
 echo "[5/5] pip-audit"
-if command -v pip-audit >/dev/null 2>&1; then
-    pip-audit
+if python -c "import pip_audit" >/dev/null 2>&1; then
+    python -m pip_audit
+elif command -v pip-audit >/dev/null 2>&1; then
+    PIPAPI_PYTHON_LOCATION="$(command -v python)" pip-audit
 else
     echo "WARNING: pip-audit not installed; skipping. Install with 'pip install -e .[dev]'." >&2
 fi
