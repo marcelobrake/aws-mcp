@@ -21,3 +21,4 @@ logs/*
 *.secret
 *.secrets
 *.lock
+nohup.out
