@@ -2,7 +2,7 @@
 
 Provides distributed tracing for every tool invocation. Traces are exported
 to an OTLP endpoint when OTEL_EXPORTER_OTLP_ENDPOINT is set, otherwise
-tracing is initialized with a no-op exporter to keep overhead minimal.
+tracing remains disabled to avoid leaking metadata to stderr or external sinks.
 """
 import logging
 import os
@@ -24,7 +24,7 @@ def init_telemetry() -> trace.Tracer:
     """Initialize OpenTelemetry tracing.
 
     Configures an OTLP exporter if OTEL_EXPORTER_OTLP_ENDPOINT is set,
-    otherwise falls back to a file-based span exporter writing to stderr.
+    otherwise keeps tracing disabled.
     """
     global _tracer
 
@@ -46,7 +46,7 @@ def init_telemetry() -> trace.Tracer:
             exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
             provider.add_span_processor(BatchSpanProcessor(exporter))
             logger.info(
-                f"OTLP tracing enabled: endpoint={otlp_endpoint}",
+                "OTLP tracing enabled",
                 extra={"tool_name": "telemetry"},
             )
         except ImportError:
@@ -54,12 +54,6 @@ def init_telemetry() -> trace.Tracer:
                 "opentelemetry-exporter-otlp not installed; OTLP tracing disabled",
                 extra={"tool_name": "telemetry"},
             )
-    else:
-        # Minimal console exporter to stderr (does not interfere with MCP stdio)
-        from opentelemetry.sdk.trace.export import ConsoleSpanExporter
-
-        exporter = ConsoleSpanExporter(out=sys.stderr)
-        provider.add_span_processor(SimpleSpanProcessor(exporter))
 
     trace.set_tracer_provider(provider)
     _tracer = trace.get_tracer("aws-mcp", "0.1.0")
